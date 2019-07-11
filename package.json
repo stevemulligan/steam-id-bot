@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "NODE_ENV=production node index.js",
-    "dev": "NODE_ENV=development nodemon index.js"
+    "dev": "NODE_ENV=development node $NODE_DEBUG_OPTION index.js"
   },
   "author": "shadz95",
   "license": "MIT",
@@ -32,6 +32,7 @@
     "discord.js": "^11.3.2",
     "dotenv": "^6.0.0",
     "erlpack": "github:discordapp/erlpack",
+    "get-urls": "^9.1.0",
     "node-fetch": "^2.1.2",
     "uws": "^9.148.0",
     "wait-until": "0.0.2",

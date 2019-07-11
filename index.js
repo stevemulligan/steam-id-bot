@@ -3,6 +3,7 @@ const winston = require("winston");
 const waitUntil = require('wait-until');
 const DOMParser = require('xmldom').DOMParser;
 const fetch = require('node-fetch');
+const getUrls = require('get-urls');
 
 require('dotenv').config();
 
@@ -50,7 +51,7 @@ client.on('guildCreate', guild => {
         // const channel = guild.channels.find("name", "general");
         // guild.systemChannel.send
         // guild.defaultChannel.sendMessage("DM me your steam profile URL and I will give you your steam ID");
-        
+
         const { id, name, region } = guild;
         logger.info(`Added to guild ${name} | ID: ${id} | Region: ${region}`);
         const totalGuilds = client.guilds.size;
@@ -68,32 +69,56 @@ client.on("guildDelete", guild => {
   logger.info(`Total guilds: ${totalGuilds}`);
 });
 
+async function processMessage(message) {
+	const urlSet = getUrls(message.content);
+	const urls = Array.from(urlSet);
+	for (let i = 0; i < urls.length; i++) {
+
+		const url = urls[i].concat("?xml=1");
+
+		try {
+			const resp = await fetch(url);
+			const text = await resp.text();
+			const doc = new DOMParser().parseFromString(text);
+			const ele = doc.documentElement.getElementsByTagName("steamID64");
+			const steamID = ele.item(0).firstChild.nodeValue;
+			message.channel.send(`Your steam id: ${steamID}`);
+		} catch (error) {
+			console.log(error);
+			message.channel.send("An error occurred retrieving steam id for " + url);
+		}
+	}
+}
+
 client.on("message", async message => {
 
   switch(message.channel.type) {
     case "dm":
       if (message.content.includes("help")) {
         message.channel.send("Enter your steam profile URL to get your steam ID. It should look like so: `https://steamcommunity.com/id/your_profile_name/`");
-      }
-      
-      if (message.content.includes("https://steamcommunity.com/id") && !message.content.includes("your_profile_name")) {
-        const url = message.content.concat("?xml=1");
-        try {
-          const resp = await fetch(url);
-          const text = await resp.text();
-          const doc = new DOMParser().parseFromString(text);
-          const ele = doc.documentElement.getElementsByTagName("steamID64");
-          const steamID = ele.item(0).firstChild.nodeValue;
-          message.channel.send(`Your steam id: ${steamID}`);
-        } catch (error) {
-          console.log(error);
-          message.channel.send("An error occurred retrieving your steam id");
-        }
+      } else {
+	      await processMessage(message);
       }
   }
 
-  if (message.isMentioned(client.user)) {
-    message.channel.send('You must DM me your steam profile URL to receive your steam id');
+  if (message.content.startsWith('steamid '))
+  {
+	  if (message.content.includes("help")) {
+		  message.channel.send("Enter your steam profile URL to get your steam ID. It should look like so: `https://steamcommunity.com/id/your_profile_name/`");
+	  } else {
+		  await processMessage(message);
+	  }
+  }
+
+	if (message.isMentioned(client.user)) {
+  	if (message.channel.name === "rust-bots")
+	  {
+		  if (message.content.includes("help")) {
+			  message.channel.send("Enter your steam profile URL to get your steam ID. It should look like so: `https://steamcommunity.com/id/your_profile_name/`");
+		  } else {
+			  await processMessage(message);
+		  }
+	  }
   }
 
 });
